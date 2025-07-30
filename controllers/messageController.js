@@ -15,19 +15,19 @@ export const getUsersForSidebar = async (req, res) => {
     const unseenMessages = {};
     const promises = filteredUser.map(async (user) => {
       const messages = await Message.find({
-        senderId: user._id,
-        receiverId: userId,
-        seen: false,
+        senderId: user._id, // pesan yg dikirim oleh user lain
+        receiverId: userId, // saya yg menerima
+        seen: false, // yg blm dibaca
       });
       if (messages.length > 0) {
         unseenMessages[user._id] = messages.length;
       }
     });
     await Promise.all(promises);
-    res.json({ succes: true, users: filteredUser, unseenMessages });
+    res.json({ success: true, users: filteredUser, unseenMessages });
   } catch (error) {
     console.log(error.message);
-    res.json({ succes: false, message: error.message });
+    res.json({ success: false, message: error.message });
   }
 };
 
@@ -48,10 +48,10 @@ export const getMessages = async (req, res) => {
       { senderId: selectedUserId, receiverId: myId },
       { seen: true }
     );
-    res.json({ success: true, message });
+    res.json({ success: true, messages });
   } catch (error) {
     console.log(error.message);
-    res.json({ succes: false, message: error.message });
+    res.json({ success: false, message: error.message });
   }
 };
 
