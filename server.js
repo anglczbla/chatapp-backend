@@ -6,26 +6,25 @@ import { connectDB } from "./lib/db.js";
 import userRouter from "./routes/userRoute.js";
 import messageRouter from "./routes/messageRoute.js";
 import { Server } from "socket.io";
-import { Socket } from "dgram";
 
 const app = express();
 const server = http.createServer(app);
 
-// initialize socket.io  server
+// Initialize socket.io server
 export const io = new Server(server, {
   cors: { origin: "*" },
 });
 
-// store  online users
+// Store online users
 export const userSocketMap = {}; // {userId: socketId}
 
-// socket.io connection halder
+// Socket.io connection handler
 io.on("connection", (socket) => {
   const userId = socket.handshake.query.userId;
   console.log("User connected", userId);
   if (userId) userSocketMap[userId] = socket.id;
 
-  // emit online users to all connected client
+  // Emit online users to all connected clients
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
   socket.on("disconnect", () => {
@@ -35,22 +34,39 @@ io.on("connection", (socket) => {
   });
 });
 
-// middleware setup
+// Middleware setup
 app.use(express.json({ limit: "4mb" }));
 app.use(cors());
 
-app.use("/api/status", (req, res) => res.send("Server is live"));
+// Health check endpoint
+app.get("/", (req, res) => {
+  res.json({ 
+    status: "OK", 
+    message: "Chat App Backend is running",
+    timestamp: new Date().toISOString()
+  });
+});
 
+app.use("/api/status", (req, res) => res.send("Server is live"));
 app.use("/api/auth", userRouter);
 app.use("/api/messages", messageRouter);
 
-// connect to db
+// Connect to database
 await connectDB();
 
-if (process.env.NODE_ENV !== "production") {
-  const PORT = process.env.PORT || 5000;
-  server.listen(PORT, () => console.log("Server is running on PORT" + PORT));
-}
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server is running on PORT ${PORT}`);
+  console.log(`📡 Socket.IO server initialized`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+});
 
-// export server for Vercel
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('✅ Process terminated');
+  });
+});
+
 export default app;
